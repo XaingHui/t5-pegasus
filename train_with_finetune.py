@@ -6,7 +6,7 @@ import torch
 import argparse
 import numpy as np
 from tqdm.auto import tqdm
-from bert4torch.model import *
+from bert4torch.models import *
 from torch.utils.data import DataLoader, Dataset
 from torch._six import container_abcs, string_classes, int_classes
 from transformers import MT5ForConditionalGeneration, BertTokenizer
@@ -257,7 +257,7 @@ def init_argument():
     parser.add_argument('--pretrain_model', default='./t5_pegasus_pretrain')
     parser.add_argument('--model_dir', default='./saved_model')
     
-    parser.add_argument('--num_epoch', default=20, help='number of epoch')
+    parser.add_argument('--num_epoch', default=5, help='number of epoch')
     parser.add_argument('--batch_size', default=16, help='batch size')
     parser.add_argument('--lr', default=2e-4, help='learning rate')
     parser.add_argument('--data_parallel', default=False)

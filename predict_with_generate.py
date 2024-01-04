@@ -14,7 +14,6 @@ import pandas as pd
 import numpy as np
 import rouge
 
-
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
@@ -33,15 +32,16 @@ def load_data(filename):
                 content = cur[0]
                 D.append(content)
     return D
-    
+
 
 class T5PegasusTokenizer(BertTokenizer):
     """结合中文特点完善的Tokenizer
     基于词颗粒度的分词，如词表中未出现，再调用BERT原生Tokenizer
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
+
     def pre_tokenizer(self, x):
         return jieba.cut(x, HMM=False)
 
@@ -53,7 +53,7 @@ class T5PegasusTokenizer(BertTokenizer):
             else:
                 split_tokens.extend(super()._tokenize(text))
         return split_tokens
-    
+
 
 class KeyDataset(Dataset):
     def __init__(self, dict_data):
@@ -64,8 +64,8 @@ class KeyDataset(Dataset):
 
     def __getitem__(self, index):
         return self.data[index]
-    
-    
+
+
 def create_data(data, tokenizer, max_len):
     """调用tokenizer.encode编码正文/标题，每条样本用dict表示数据域
     """
@@ -155,7 +155,7 @@ def default_collate(batch):
         return default_collate([default_collate(elem) for elem in batch])
 
     raise TypeError(default_collate_err_msg_format.format(elem_type))
-    
+
 
 def prepare_data(args, tokenizer):
     """准备batch数据
@@ -170,7 +170,7 @@ def prepare_data(args, tokenizer):
 def compute_rouge(source, target):
     """计算rouge-1、rouge-2、rouge-l
     """
-    
+
     source, target = ' '.join(source), ' '.join(target)
     try:
         scores = rouge.Rouge().get_scores(hyps=source, refs=target)
@@ -185,8 +185,8 @@ def compute_rouge(source, target):
             'rouge-2': 0.0,
             'rouge-l': 0.0,
         }
-    
-    
+
+
 def compute_rouges(sources, targets):
     scores = {
         'rouge-1': 0.0,
@@ -208,11 +208,11 @@ def generate(test_data, model, tokenizer, args):
         model.eval()
         for feature in tqdm(test_data):
             raw_data = feature['raw_data']
-            content = {k : v for k, v in feature.items() if k not in ['raw_data', 'title']} 
+            content = {k: v for k, v in feature.items() if k not in ['raw_data', 'title']}
             gen = model.generate(max_length=args.max_len_generate,
-                                eos_token_id=tokenizer.sep_token_id,
-                                decoder_start_token_id=tokenizer.cls_token_id,
-                                **content)
+                                 eos_token_id=tokenizer.sep_token_id,
+                                 decoder_start_token_id=tokenizer.cls_token_id,
+                                 **content)
             gen = tokenizer.batch_decode(gen, skip_special_tokens=True)
             gen = [item.replace(' ', '') for item in gen]
             writer.writerows(zip(gen, raw_data))
@@ -232,9 +232,9 @@ def generate_multiprocess(feature):
     raw_data = feature['raw_data']
     content = {k: v for k, v in feature.items() if k != 'raw_data'}
     gen = model.generate(max_length=args.max_len_generate,
-                             eos_token_id=tokenizer.sep_token_id,
-                             decoder_start_token_id=tokenizer.cls_token_id,
-                             **content)
+                         eos_token_id=tokenizer.sep_token_id,
+                         decoder_start_token_id=tokenizer.cls_token_id,
+                         **content)
     gen = tokenizer.batch_decode(gen, skip_special_tokens=True)
     results = ["{}\t{}".format(x.replace(' ', ''), y) for x, y in zip(gen, raw_data)]
     return results
@@ -243,8 +243,8 @@ def generate_multiprocess(feature):
 def init_argument():
     parser = argparse.ArgumentParser(description='t5-pegasus-chinese')
     parser.add_argument('--test_data', default='./data/predict.tsv')
-    parser.add_argument('--result_file', default='./data/predict_result.tsv')
-    parser.add_argument('--pretrain_model', default='./t5_pegasus_pretrain')    
+    parser.add_argument('--result_file', default='./data/predict_result_hello.tsv')
+    parser.add_argument('--pretrain_model', default='./t5_pegasus_pretrain')
     parser.add_argument('--model', default='./saved_model/summary_model')
 
     parser.add_argument('--batch_size', default=16, help='batch size')
@@ -257,14 +257,14 @@ def init_argument():
 
 
 if __name__ == '__main__':
-    
+
     # step 1. init argument
     args = init_argument()
 
     # step 2. prepare test data
     tokenizer = T5PegasusTokenizer.from_pretrained(args.pretrain_model)
     test_data = prepare_data(args, tokenizer)
-    
+
     # step 3. load finetuned model
     model = torch.load(args.model, map_location=device)
 
